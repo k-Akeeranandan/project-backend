@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface BoothApplicationRepository extends JpaRepository<BoothApplication, Long> {
     boolean existsByBoothIdAndUserId(Long boothId, Long userId);
     Optional<BoothApplication> findByBoothIdAndUserId(Long boothId, Long userId);
+    Optional<BoothApplication> findTopByUserIdOrderByCreatedAtDesc(Long userId);
 }

@@ -27,16 +27,23 @@ public class EmailService {
     @Value("${spring.mail.username:}")
     private String mailUsername;
 
-    public void sendPlainText(String to, String subject, String body) {
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
+    public boolean sendPlainText(String to, String subject, String body) {
         if (!mailEnabled) {
-            return;
+            return false;
         }
         if (mailSender == null) {
             log.warn("app.mail.enabled is true but mail is not configured (e.g. spring.mail.host). Skipping email to {}.", to);
-            return;
+            return false;
         }
         if (!StringUtils.hasText(to)) {
-            return;
+            return false;
+        }
+        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailPassword)) {
+            log.warn("Mail is enabled but credentials are missing (spring.mail.username/password). Skipping email to {}.", to);
+            return false;
         }
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
@@ -48,8 +55,10 @@ public class EmailService {
                 msg.setFrom(from);
             }
             mailSender.send(msg);
+            return true;
         } catch (MailException e) {
             log.error("Failed to send email to {}", to, e);
+            return false;
         }
     }
 }

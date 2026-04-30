@@ -38,7 +38,7 @@ public class UserApprovalService {
         user.setAccountStatus(AccountStatus.APPROVED);
         userRepository.save(user);
 
-        emailService.sendPlainText(
+        boolean sent = emailService.sendPlainText(
                 user.getEmail(),
                 "Congratulations! You are selected — " + applicationName,
                 "Hello " + user.getName() + ",\n\n"
@@ -46,6 +46,9 @@ public class UserApprovalService {
                         + "Venue / workspace details will be updated shortly. Please keep an eye on your dashboard for updates.\n\n"
                         + "Regards,\n"
                         + applicationName);
+        if (!sent) {
+            throw new ApiException("User approved, but notification email could not be sent. Please configure mail settings.", HttpStatus.SERVICE_UNAVAILABLE);
+        }
 
         return authService.toUserResponseDto(user);
     }
@@ -60,7 +63,7 @@ public class UserApprovalService {
         user.setAccountStatus(AccountStatus.REJECTED);
         userRepository.save(user);
 
-        emailService.sendPlainText(
+        boolean sent = emailService.sendPlainText(
                 user.getEmail(),
                 "Update on your application — " + applicationName,
                 "Hello " + user.getName() + ",\n\n"
@@ -69,6 +72,9 @@ public class UserApprovalService {
                         + "We encourage you to apply again for upcoming opportunities.\n\n"
                         + "Regards,\n"
                         + applicationName);
+        if (!sent) {
+            throw new ApiException("User rejected, but notification email could not be sent. Please configure mail settings.", HttpStatus.SERVICE_UNAVAILABLE);
+        }
 
         return authService.toUserResponseDto(user);
     }

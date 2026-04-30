@@ -21,4 +21,13 @@ public class UserResponseDto {
 
     /** Original resume filename if the user has uploaded one. */
     private String resumeOriginalFileName;
+
+    // Application details (latest booth application for this user, if any)
+    private String phoneNumber;
+    private String currentProfession;
+    private String educationLevel;
+    private String collegeName;
+    private Integer graduationYear;
+    private String skills;
+    private String coverLetter;
 }

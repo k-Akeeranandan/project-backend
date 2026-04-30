@@ -22,6 +22,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -70,6 +75,7 @@ public class BoothService {
     public List<BoothDto> getAll(){
         return boothRepo.findAll()
                 .stream()
+                .filter(this::isBoothVisible)
                 .map(booth -> {
                     BoothDto dto = mapper.map(booth, BoothDto.class);
 
@@ -202,6 +208,10 @@ public class BoothService {
         Booth booth = boothRepo.findById(boothId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booth not found"));
 
+        if (!isBoothVisible(booth)) {
+            return List.of();
+        }
+
         if (booth.getApplicants() == null) {
             return List.of();
         }
@@ -216,5 +226,42 @@ public class BoothService {
         Booth booth = boothRepo.findById(boothId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booth not found"));
         boothRepo.delete(booth);
+    }
+
+    private boolean isBoothVisible(Booth booth) {
+        if (booth == null || booth.getEvent() == null) {
+            return false;
+        }
+        return isEventVisible(booth.getEvent());
+    }
+
+    private boolean isEventVisible(Event event) {
+        if (event == null || event.getDate() == null || event.getDate().isBlank()) {
+            return true;
+        }
+        Instant eventInstant = parseEventInstant(event.getDate());
+        return eventInstant == null || !eventInstant.isBefore(Instant.now());
+    }
+
+    private Instant parseEventInstant(String rawDate) {
+        String trimmed = rawDate == null ? "" : rawDate.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        try {
+            return Instant.parse(trimmed);
+        } catch (DateTimeParseException ignored) {
+            // try other accepted formats below
+        }
+        try {
+            return LocalDateTime.parse(trimmed).atZone(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            // try date-only format below
+        }
+        try {
+            return LocalDate.parse(trimmed).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
     }
 }
