@@ -18,17 +18,33 @@ public class RailwayMysqlEnvironmentPostProcessor implements EnvironmentPostProc
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        if (hasText(environment.getProperty("SPRING_DATASOURCE_URL"))) {
-            return;
-        }
-
         String mysqlPublicUrl = environment.getProperty("MYSQL_PUBLIC_URL");
-        if (!hasText(mysqlPublicUrl)) {
+        if (hasText(mysqlPublicUrl)) {
+            configureFromMysqlUrl(environment, mysqlPublicUrl, "MYSQL_PUBLIC_URL");
             return;
         }
 
-        URI uri = URI.create(mysqlPublicUrl);
+        String springDatasourceUrl = environment.getProperty("SPRING_DATASOURCE_URL");
+        if (hasText(springDatasourceUrl)) {
+            logJdbcUrl("SPRING_DATASOURCE_URL", springDatasourceUrl);
+            return;
+        }
+
+        String mysqlHost = environment.getProperty("MYSQLHOST");
+        if (hasText(mysqlHost)) {
+            String mysqlPort = environment.getProperty("MYSQLPORT", "3306");
+            System.out.println("Database config using MYSQLHOST -> " + mysqlHost + ":" + mysqlPort);
+            if (mysqlHost.endsWith(".railway.internal")) {
+                System.out.println("WARNING: mysql.railway.internal is Railway-private and will not work from Render. "
+                        + "Set MYSQL_PUBLIC_URL in Render using Railway's public MySQL URL.");
+            }
+        }
+    }
+
+    private void configureFromMysqlUrl(ConfigurableEnvironment environment, String mysqlUrl, String sourceName) {
+        URI uri = URI.create(mysqlUrl);
         if (!"mysql".equalsIgnoreCase(uri.getScheme())) {
+            System.out.println("WARNING: " + sourceName + " must start with mysql://");
             return;
         }
 
@@ -52,6 +68,7 @@ public class RailwayMysqlEnvironmentPostProcessor implements EnvironmentPostProc
         }
 
         environment.getPropertySources().addFirst(new MapPropertySource(PROPERTY_SOURCE_NAME, properties));
+        System.out.println("Database config using " + sourceName + " -> " + host + ":" + port + database);
     }
 
     @Override
@@ -65,5 +82,16 @@ public class RailwayMysqlEnvironmentPostProcessor implements EnvironmentPostProc
 
     private static String decode(String value) {
         return URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private static void logJdbcUrl(String sourceName, String jdbcUrl) {
+        try {
+            String withoutPrefix = jdbcUrl.replaceFirst("^jdbc:", "");
+            URI uri = URI.create(withoutPrefix);
+            System.out.println("Database config using " + sourceName + " -> "
+                    + uri.getHost() + ":" + (uri.getPort() == -1 ? 3306 : uri.getPort()) + uri.getPath());
+        } catch (IllegalArgumentException ex) {
+            System.out.println("Database config using " + sourceName);
+        }
     }
 }
