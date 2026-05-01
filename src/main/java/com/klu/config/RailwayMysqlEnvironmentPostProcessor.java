@@ -24,6 +24,18 @@ public class RailwayMysqlEnvironmentPostProcessor implements EnvironmentPostProc
             return;
         }
 
+        String railwayMysqlUrl = environment.getProperty("RAILWAY_MYSQL_PUBLIC_URL");
+        if (hasText(railwayMysqlUrl)) {
+            configureFromMysqlUrl(environment, railwayMysqlUrl, "RAILWAY_MYSQL_PUBLIC_URL");
+            return;
+        }
+
+        String databaseUrl = environment.getProperty("DATABASE_URL");
+        if (hasText(databaseUrl) && databaseUrl.startsWith("mysql://")) {
+            configureFromMysqlUrl(environment, databaseUrl, "DATABASE_URL");
+            return;
+        }
+
         String springDatasourceUrl = environment.getProperty("SPRING_DATASOURCE_URL");
         if (hasText(springDatasourceUrl)) {
             logJdbcUrl("SPRING_DATASOURCE_URL", springDatasourceUrl);
