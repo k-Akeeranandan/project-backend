@@ -1,0 +1,10 @@
+target
+.m2
+.git
+.settings
+.classpath
+.project
+.factorypath
+uploads
+local-secrets.properties
+*.log
